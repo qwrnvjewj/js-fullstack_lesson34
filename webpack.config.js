@@ -3,7 +3,16 @@ const HtmlWebpackPlugin = require('html-webpack-plugin')
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const CssMinimizerWebpackPlugin = require('css-minimizer-webpack-plugin')
+const CssMinimizerWebpackPlugin = require('css-minimizer-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
+const EslintWebpackPlugin = require('eslint-webpack-plugin')
+
+new EslintWebpackPlugin({
+  extensions: ['js'],
+  configType: 'eslintrc',
+  fix: true
+})
+
 
 const isDev = process.env.NODE_ENV === 'development'
 const isProd = !isDev
@@ -14,7 +23,8 @@ const optimization = () => ({
   },
   minimizer: [
     '...',                      // оставляем стандартный Terser для JS
-    new CssMinimizerWebpackPlugin()
+    new CssMinimizerWebpackPlugin(),
+    new TerserPlugin()
   ]
 })
 
@@ -60,12 +70,25 @@ const setPlugins = () => {
   return plugins
 }
 
+const jsLoaders = (extra) => {
+  const loaders = {
+    loader: 'babel-loader',
+    options: {
+      presets: ['@babel/preset-env']
+    }
+  }
+
+  if (extra) loaders.options.presets.push(extra)
+
+  return loaders
+}
+
 module.exports = {
   mode: isDev ? 'development' : 'production',
   context: path.resolve(__dirname, 'src'),
   entry: {
-    main: './index.js',
-    stat: './statistics.js'
+    main: './index.jsx',
+    stat: './statistics.ts'
   },
   target: 'web',
   output: {
@@ -86,9 +109,25 @@ module.exports = {
     port: 4200,
     hot: false
   },
+  devtool: isDev ? 'source-map' : false,
   plugins: setPlugins(),
   module: {
     rules: [
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: jsLoaders()
+      },
+      {
+        test: /\.ts$/,
+        exclude: /node_modules/,
+        use: jsLoaders('@babel/preset-typescript')
+      },
+      {
+        test: /\.jsx$/,
+        exclude: /node_modules/,
+        use: jsLoaders('@babel/preset-react')
+      },
       {
         test: /\.css$/,
         use: cssLoaders()
@@ -109,14 +148,14 @@ module.exports = {
         test: /\.(png|jpe?g|svg|gif|webp)$/,
         type: 'asset/resource',
         generator: {
-          filename: 'assets/images/[name].[fullhash][ext]'
+          filename: 'assets/images/[name].[contenthash:10][ext]'
         }
       },
       {
         test: /\.(ttf|woff|woff2|eot)$/,
         type: 'asset/resource',
         generator: {
-          filename: 'assets/fonts/[name].[fullhash][ext]'
+          filename: 'assets/fonts/[name].[contenthash:10][ext]'
         }
       }
     ]

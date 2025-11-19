@@ -19,7 +19,8 @@ h1 {
   margin-right: auto;
 }
 
-.logo {
+.logo,
+.webpack-logo {
   background-image: url(../logo-js-svgrepo-com.png);
   background-size: cover;
   width: 300px;
